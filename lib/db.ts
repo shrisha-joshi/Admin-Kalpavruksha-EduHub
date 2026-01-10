@@ -2,25 +2,28 @@ import mongoose from 'mongoose';
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
-// In development, we can default to a local string if not provided for testing, 
-// but for production it must be set.
-// For now, I will not throw immediately to allow build without env, but warn.
-
 interface MongooseConn {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
 }
 
-let cached: MongooseConn = (global as any).mongoose;
+// Properly type the global cache
+declare global {
+  var mongoose: MongooseConn | undefined;
+}
 
-if (!cached) {
-  cached = (global as any).mongoose = { conn: null, promise: null };
+let cached: MongooseConn = global.mongoose || { conn: null, promise: null };
+
+if (!global.mongoose) {
+  global.mongoose = cached;
 }
 
 async function dbConnect() {
   if (!MONGODB_URI) {
-     console.warn('MONGODB_URI not defined in .env.local');
-     // throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('MONGODB_URI must be defined in production environment');
+    }
+    console.warn('MONGODB_URI not defined in .env.local, using localhost fallback');
   }
 
   if (cached.conn) {
