@@ -15,6 +15,7 @@ const ClassSchema = new mongoose.Schema({
 const ResourceSchema = new mongoose.Schema({
   name: { type: String, required: true },
   subjectCode: { type: String },
+  header: { type: String },
   university: { type: String, required: true },
   scheme: { type: String },
   college: { type: String },

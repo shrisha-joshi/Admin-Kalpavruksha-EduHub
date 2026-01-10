@@ -14,6 +14,7 @@ type ResourceData = {
   id: string;
   name: string;
   subjectCode?: string;
+  header?: string;
   university: string;
   scheme?: string;
   college?: string;
@@ -33,6 +34,7 @@ export default function ManageResourcesPage() {
   const [formData, setFormData] = useState<{
     name: string;
     subjectCode: string;
+    header: string;
     university: string;
     scheme: string;
     college: string;
@@ -43,6 +45,7 @@ export default function ManageResourcesPage() {
   }>({
     name: '',
     subjectCode: '',
+    header: '',
     university: '',
     scheme: '',
     college: '',
@@ -99,6 +102,7 @@ export default function ManageResourcesPage() {
       setFormData({
         name: '',
         subjectCode: '',
+        header: '',
         university: '',
         scheme: '',
         college: '',
@@ -181,6 +185,18 @@ export default function ManageResourcesPage() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="header">Header / Module / Important Topic</Label>
+                <Input
+                  id="header"
+                  name="header"
+                  autoComplete="off"
+                  value={formData.header}
+                  onChange={(e) => setFormData({ ...formData, header: e.target.value })}
+                  placeholder="e.g., Module 1, Important Questions for Finals"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="type">Resource Type *</Label>
                 <Select value={formData.type} onValueChange={(value: string) => setFormData({ ...formData, type: value as 'notes' | 'pyq' | 'handwritten' | 'syllabus' | 'important-questions' })}>
                   <SelectTrigger id="type">
@@ -250,7 +266,8 @@ export default function ManageResourcesPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="cse">Computer Science</SelectItem>
-                    <SelectItem value="ece">Electronics</SelectItem>
+                    <SelectItem value="ece">Electronics and Communication (E&C)</SelectItem>
+                    <SelectItem value="eee">Electrical and Electronics (EEE)</SelectItem>
                     <SelectItem value="mech">Mechanical</SelectItem>
                     <SelectItem value="civil">Civil</SelectItem>
                   </SelectContent>
