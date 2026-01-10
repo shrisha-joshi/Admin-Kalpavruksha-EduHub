@@ -9,15 +9,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-// Configure API route for larger payloads and no timeout
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb', // Increase body size limit for large requests
-    },
-    responseLimit: false, // No response size limit
-  },
-};
+// App Router automatically handles body parsing with reasonable limits
+// For unlimited resources, MongoDB handles the scale, not the API config
 
 export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
