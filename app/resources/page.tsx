@@ -15,10 +15,11 @@ type ResourceData = {
   name: string;
   subjectCode?: string;
   university: string;
+  scheme?: string;
   college?: string;
   branch?: string;
   semester?: string;
-  type: 'notes' | 'pyq' | 'handwritten';
+  type: 'notes' | 'pyq' | 'handwritten' | 'syllabus' | 'important-questions';
   fileUrl: string;
   uploadedAt: Date;
 };
@@ -33,15 +34,17 @@ export default function ManageResourcesPage() {
     name: string;
     subjectCode: string;
     university: string;
+    scheme: string;
     college: string;
     branch: string;
     semester: string;
-    type: 'notes' | 'pyq' | 'handwritten';
+    type: 'notes' | 'pyq' | 'handwritten' | 'syllabus' | 'important-questions';
     fileUrl: string;
   }>({
     name: '',
     subjectCode: '',
     university: '',
+    scheme: '',
     college: '',
     branch: '',
     semester: '',
@@ -97,6 +100,7 @@ export default function ManageResourcesPage() {
         name: '',
         subjectCode: '',
         university: '',
+        scheme: '',
         college: '',
         branch: '',
         semester: '',
@@ -122,12 +126,15 @@ export default function ManageResourcesPage() {
   };
 
   const getTypeBadge = (type: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'outline'> = {
-      notes: 'default',
-      pyq: 'secondary',
-      handwritten: 'outline',
+    const config: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
+      notes: { label: 'Notes', variant: 'default' },
+      pyq: { label: 'PYQ', variant: 'secondary' },
+      handwritten: { label: 'Handwritten', variant: 'outline' },
+      syllabus: { label: 'Syllabus', variant: 'default' },
+      'important-questions': { label: 'Important Q', variant: 'destructive' },
     };
-    return <Badge variant={variants[type]}>{type.toUpperCase()}</Badge>;
+    const { label, variant } = config[type] || { label: type.toUpperCase(), variant: 'default' as const };
+    return <Badge variant={variant}>{label}</Badge>;
   };
 
   return (
@@ -175,7 +182,7 @@ export default function ManageResourcesPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="type">Resource Type *</Label>
-                <Select value={formData.type} onValueChange={(value: string) => setFormData({ ...formData, type: value as 'notes' | 'pyq' | 'handwritten' })}>
+                <Select value={formData.type} onValueChange={(value: string) => setFormData({ ...formData, type: value as 'notes' | 'pyq' | 'handwritten' | 'syllabus' | 'important-questions' })}>
                   <SelectTrigger id="type">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
@@ -183,6 +190,8 @@ export default function ManageResourcesPage() {
                     <SelectItem value="notes">Notes</SelectItem>
                     <SelectItem value="pyq">Previous Year Questions</SelectItem>
                     <SelectItem value="handwritten">Handwritten Notes</SelectItem>
+                    <SelectItem value="syllabus">Syllabus</SelectItem>
+                    <SelectItem value="important-questions">Important Questions</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -199,6 +208,23 @@ export default function ManageResourcesPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {formData.university === 'vtu' && (
+                <div className="space-y-2">
+                  <Label htmlFor="scheme">Scheme</Label>
+                  <Select value={formData.scheme || undefined} onValueChange={(value: string) => setFormData({ ...formData, scheme: value })}>
+                    <SelectTrigger id="scheme">
+                      <SelectValue placeholder="Select scheme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2018">2018 Scheme</SelectItem>
+                      <SelectItem value="2021">2021 Scheme</SelectItem>
+                      <SelectItem value="2022">2022 Scheme</SelectItem>
+                      <SelectItem value="2025">2025 Scheme</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               {formData.university === 'autonomous' && (
                 <div className="space-y-2">
@@ -344,6 +370,7 @@ export default function ManageResourcesPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>University</TableHead>
+                  <TableHead>Scheme</TableHead>
                   <TableHead>Branch</TableHead>
                   <TableHead>Semester</TableHead>
                   <TableHead>Uploaded</TableHead>
@@ -356,6 +383,7 @@ export default function ManageResourcesPage() {
                     <TableCell className="font-medium">{resource.name}</TableCell>
                     <TableCell>{getTypeBadge(resource.type)}</TableCell>
                     <TableCell className="uppercase">{resource.university}{resource.college ? ` - ${resource.college}` : ''}</TableCell>
+                    <TableCell>{resource.scheme || '-'}</TableCell>
                     <TableCell>{resource.branch || '-'}</TableCell>
                     <TableCell>{resource.semester || '-'}</TableCell>
                     <TableCell>{new Date(resource.uploadedAt).toLocaleDateString()}</TableCell>

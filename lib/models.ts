@@ -16,10 +16,11 @@ const ResourceSchema = new mongoose.Schema({
   name: { type: String, required: true },
   subjectCode: { type: String },
   university: { type: String, required: true },
+  scheme: { type: String },
   college: { type: String },
   branch: { type: String },
   semester: { type: String },
-  type: { type: String, enum: ['notes', 'pyq', 'handwritten'], required: true },
+  type: { type: String, enum: ['notes', 'pyq', 'handwritten', 'syllabus', 'important-questions'], required: true },
   fileUrl: { type: String, required: true },
   uploadedAt: { type: Date, default: Date.now },
 });
