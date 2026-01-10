@@ -5,7 +5,7 @@ import { Resource } from '@/lib/models';
 // CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
@@ -33,6 +33,26 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating resource:', error);
     return NextResponse.json({ error: 'Failed to create resource' }, { status: 500, headers: corsHeaders });
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    await dbConnect();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    if (!id) {
+      return NextResponse.json({ error: 'ID required' }, { status: 400, headers: corsHeaders });
+    }
+    const data = await request.json();
+    const updatedResource = await Resource.findByIdAndUpdate(id, data, { new: true });
+    if (!updatedResource) {
+      return NextResponse.json({ error: 'Resource not found' }, { status: 404, headers: corsHeaders });
+    }
+    return NextResponse.json(updatedResource, { headers: corsHeaders });
+  } catch (error) {
+    console.error('Error updating resource:', error);
+    return NextResponse.json({ error: 'Failed to update resource' }, { status: 500, headers: corsHeaders });
   }
 }
 

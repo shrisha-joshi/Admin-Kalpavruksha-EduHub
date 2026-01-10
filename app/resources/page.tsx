@@ -8,10 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Loader2, FileText, Upload, Link as LinkIcon } from 'lucide-react';
+import { Trash2, Plus, Loader2, FileText, Upload, Link as LinkIcon, Edit, X } from 'lucide-react';
 
 type ResourceData = {
-  id: string;
+  _id: string;
   name: string;
   subjectCode?: string;
   header?: string;
@@ -31,6 +31,13 @@ export default function ManageResourcesPage() {
   const [uploadMode, setUploadMode] = useState<'url' | 'file'>('url');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [filters, setFilters] = useState({
+    university: '',
+    branch: '',
+    semester: '',
+    type: '',
+  });
   const [formData, setFormData] = useState<{
     name: string;
     subjectCode: string;
@@ -93,11 +100,23 @@ export default function ManageResourcesPage() {
         setUploading(false);
       }
 
-      await fetch('/api/resources', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, fileUrl }),
-      });
+      if (editingId) {
+        // Update existing resource
+        await fetch(`/api/resources?id=${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...formData, fileUrl }),
+        });
+        setEditingId(null);
+      } else {
+        // Create new resource
+        await fetch('/api/resources', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...formData, fileUrl }),
+        });
+      }
+      
       fetchResources();
       setFormData({
         name: '',
@@ -113,19 +132,67 @@ export default function ManageResourcesPage() {
       });
       setSelectedFile(null);
     } catch (error) {
-      console.error('Failed to add resource:', error);
+      console.error('Failed to save resource:', error);
+      alert('Failed to save resource. Please try again.');
       setUploading(false);
     }
   };
 
+  const handleEdit = (resource: ResourceData) => {
+    setFormData({
+      name: resource.name,
+      subjectCode: resource.subjectCode || '',
+      header: resource.header || '',
+      university: resource.university,
+      scheme: resource.scheme || '',
+      college: resource.college || '',
+      branch: resource.branch || '',
+      semester: resource.semester || '',
+      type: resource.type,
+      fileUrl: resource.fileUrl,
+    });
+    setEditingId(resource._id);
+    setUploadMode('url');
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setFormData({
+      name: '',
+      subjectCode: '',
+      header: '',
+      university: '',
+      scheme: '',
+      college: '',
+      branch: '',
+      semester: '',
+      type: 'notes',
+      fileUrl: '',
+    });
+    setSelectedFile(null);
+  };
+
   const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this resource? This action cannot be undone.')) {
+      return;
+    }
+    
     try {
-      await fetch(`/api/resources?id=${id}`, {
+      const response = await fetch(`/api/resources?id=${id}`, {
         method: 'DELETE',
       });
+      
+      if (!response.ok) {
+        throw new Error('Delete failed');
+      }
+      
       fetchResources();
+      alert('Resource deleted successfully!');
     } catch (error) {
       console.error('Failed to delete resource:', error);
+      alert('Failed to delete resource. Please try again.');
     }
   };
 
@@ -151,9 +218,17 @@ export default function ManageResourcesPage() {
       {/* Add New Resource Form */}
       <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Add New Resource
+          <CardTitle className="flex items-center gap-2 justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              {editingId ? 'Edit Resource' : 'Add New Resource'}
+            </div>
+            {editingId && (
+              <Button variant="ghost" size="sm" onClick={handleCancelEdit}>
+                <X className="h-4 w-4 mr-2" />
+                Cancel Edit
+              </Button>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -357,6 +432,11 @@ export default function ManageResourcesPage() {
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Uploading...
                 </>
+              ) : editingId ? (
+                <>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Update Resource
+                </>
               ) : (
                 <>
                   <Plus className="mr-2 h-4 w-4" />
@@ -371,9 +451,87 @@ export default function ManageResourcesPage() {
       {/* Resources List */}
       <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle>All Resources</CardTitle>
+          <CardTitle>All Resources ({resources.length})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/50 rounded-lg">
+            <div className="space-y-2">
+              <Label htmlFor="filter-university">Filter by University</Label>
+              <Select value={filters.university || undefined} onValueChange={(value) => setFilters({ ...filters, university: value })}>
+                <SelectTrigger id="filter-university">
+                  <SelectValue placeholder="All Universities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Universities</SelectItem>
+                  <SelectItem value="vtu">VTU</SelectItem>
+                  <SelectItem value="autonomous">Autonomous</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="filter-branch">Filter by Branch</Label>
+              <Select value={filters.branch || undefined} onValueChange={(value) => setFilters({ ...filters, branch: value })}>
+                <SelectTrigger id="filter-branch">
+                  <SelectValue placeholder="All Branches" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Branches</SelectItem>
+                  <SelectItem value="cse">Computer Science</SelectItem>
+                  <SelectItem value="ece">Electronics and Communication (E&C)</SelectItem>
+                  <SelectItem value="eee">Electrical and Electronics (EEE)</SelectItem>
+                  <SelectItem value="mech">Mechanical</SelectItem>
+                  <SelectItem value="civil">Civil</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="filter-semester">Filter by Semester</Label>
+              <Select value={filters.semester || undefined} onValueChange={(value) => setFilters({ ...filters, semester: value })}>
+                <SelectTrigger id="filter-semester">
+                  <SelectValue placeholder="All Semesters" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Semesters</SelectItem>
+                  {['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'].map((sem) => (
+                    <SelectItem key={sem} value={sem}>{sem} Semester</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="filter-type">Filter by Type</Label>
+              <Select value={filters.type || undefined} onValueChange={(value) => setFilters({ ...filters, type: value })}>
+                <SelectTrigger id="filter-type">
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="notes">Notes</SelectItem>
+                  <SelectItem value="pyq">Previous Year Questions</SelectItem>
+                  <SelectItem value="handwritten">Handwritten Notes</SelectItem>
+                  <SelectItem value="syllabus">Syllabus</SelectItem>
+                  <SelectItem value="important-questions">Important Questions</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {(filters.university || filters.branch || filters.semester || filters.type) && (
+              <div className="md:col-span-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFilters({ university: '', branch: '', semester: '', type: '' })}
+                >
+                  Clear All Filters
+                </Button>
+              </div>
+            )}
+          </div>
+
           {loading ? (
             <div className="flex justify-center items-center p-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -381,43 +539,83 @@ export default function ManageResourcesPage() {
           ) : resources.length === 0 ? (
             <p className="text-center text-muted-foreground p-8">No resources found. Add your first resource above.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>University</TableHead>
-                  <TableHead>Scheme</TableHead>
-                  <TableHead>Branch</TableHead>
-                  <TableHead>Semester</TableHead>
-                  <TableHead>Uploaded</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {resources.map((resource) => (
-                  <TableRow key={resource.id}>
-                    <TableCell className="font-medium">{resource.name}</TableCell>
-                    <TableCell>{getTypeBadge(resource.type)}</TableCell>
-                    <TableCell className="uppercase">{resource.university}{resource.college ? ` - ${resource.college}` : ''}</TableCell>
-                    <TableCell>{resource.scheme || '-'}</TableCell>
-                    <TableCell>{resource.branch || '-'}</TableCell>
-                    <TableCell>{resource.semester || '-'}</TableCell>
-                    <TableCell>{new Date(resource.uploadedAt).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(resource.id)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Header/Module</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>University</TableHead>
+                    <TableHead>Scheme</TableHead>
+                    <TableHead>Branch</TableHead>
+                    <TableHead>Semester</TableHead>
+                    <TableHead>Uploaded</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {resources
+                    .filter((resource) => {
+                      if (filters.university && filters.university !== 'all' && resource.university !== filters.university) return false;
+                      if (filters.branch && filters.branch !== 'all' && resource.branch !== filters.branch) return false;
+                      if (filters.semester && filters.semester !== 'all' && resource.semester !== filters.semester) return false;
+                      if (filters.type && filters.type !== 'all' && resource.type !== filters.type) return false;
+                      return true;
+                    })
+                    .map((resource) => (
+                      <TableRow key={resource._id}>
+                        <TableCell className="font-medium max-w-xs">
+                          {resource.name}
+                          {resource.subjectCode && <div className="text-xs text-muted-foreground">{resource.subjectCode}</div>}
+                        </TableCell>
+                        <TableCell className="max-w-xs">
+                          {resource.header ? (
+                            <Badge variant="outline" className="text-xs">{resource.header}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>{getTypeBadge(resource.type)}</TableCell>
+                        <TableCell className="uppercase">{resource.university}{resource.college ? ` - ${resource.college}` : ''}</TableCell>
+                        <TableCell>{resource.scheme || '-'}</TableCell>
+                        <TableCell>{resource.branch || '-'}</TableCell>
+                        <TableCell>{resource.semester || '-'}</TableCell>
+                        <TableCell className="text-sm">{new Date(resource.uploadedAt).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(resource)}
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(resource._id)}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+              {resources.filter((resource) => {
+                if (filters.university && filters.university !== 'all' && resource.university !== filters.university) return false;
+                if (filters.branch && filters.branch !== 'all' && resource.branch !== filters.branch) return false;
+                if (filters.semester && filters.semester !== 'all' && resource.semester !== filters.semester) return false;
+                if (filters.type && filters.type !== 'all' && resource.type !== filters.type) return false;
+                return true;
+              }).length === 0 && (
+                <p className="text-center text-muted-foreground p-8">No resources match the selected filters.</p>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
