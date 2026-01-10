@@ -9,6 +9,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
+// Configure API route for larger payloads and no timeout
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb', // Increase body size limit for large requests
+    },
+    responseLimit: false, // No response size limit
+  },
+};
+
 export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
 }
@@ -28,11 +38,24 @@ export async function POST(request: NextRequest) {
   try {
     await dbConnect();
     const data = await request.json();
+    
+    // Validate required fields
+    if (!data.name || !data.university || !data.type || !data.fileUrl) {
+      return NextResponse.json(
+        { error: 'Missing required fields: name, university, type, fileUrl' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    
     const newResource = await Resource.create(data);
+    console.log(`✅ Resource created successfully: ${newResource._id}`);
     return NextResponse.json(newResource, { status: 201, headers: corsHeaders });
-  } catch (error) {
-    console.error('Error creating resource:', error);
-    return NextResponse.json({ error: 'Failed to create resource' }, { status: 500, headers: corsHeaders });
+  } catch (error: any) {
+    console.error('❌ Error creating resource:', error);
+    return NextResponse.json(
+      { error: 'Failed to create resource', details: error.message },
+      { status: 500, headers: corsHeaders }
+    );
   }
 }
 
