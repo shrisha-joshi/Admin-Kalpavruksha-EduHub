@@ -102,19 +102,35 @@ export default function ManageResourcesPage() {
 
       if (editingId) {
         // Update existing resource
-        await fetch(`/api/resources?id=${editingId}`, {
+        const updateRes = await fetch(`/api/resources?id=${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...formData, fileUrl }),
         });
+        
+        if (!updateRes.ok) {
+          const errorData = await updateRes.json();
+          throw new Error(`Update failed: ${errorData.error || updateRes.statusText}`);
+        }
+        
         setEditingId(null);
+        alert('Resource updated successfully!');
       } else {
         // Create new resource
-        await fetch('/api/resources', {
+        const createRes = await fetch('/api/resources', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...formData, fileUrl }),
         });
+        
+        if (!createRes.ok) {
+          const errorData = await createRes.json();
+          throw new Error(`Upload failed: ${errorData.error || errorData.details || createRes.statusText}`);
+        }
+        
+        const newResource = await createRes.json();
+        console.log('✅ Resource created:', newResource);
+        alert('Resource uploaded successfully!');
       }
       
       fetchResources();
@@ -132,8 +148,9 @@ export default function ManageResourcesPage() {
       });
       setSelectedFile(null);
     } catch (error) {
-      console.error('Failed to save resource:', error);
-      alert('Failed to save resource. Please try again.');
+      console.error('❌ Failed to save resource:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to save resource: ${errorMessage}\n\nPlease check:\n1. MongoDB connection\n2. Browser console for details\n3. Network tab for API errors`);
       setUploading(false);
     }
   };
