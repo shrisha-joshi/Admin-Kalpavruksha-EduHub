@@ -17,12 +17,9 @@ export const metadata: Metadata = {
   title: "Admin Portal | Kalpavruksha EduHub",
   description: "Administrative portal for managing Kalpavruksha resources.",
   icons: {
-    icon: [
-      { url: '/favicon.ico', sizes: '32x32' },
-      { url: '/kalpavruksha-logo.png', sizes: '192x192', type: 'image/png' },
-    ],
-    apple: '/kalpavruksha-logo.png',
-    shortcut: '/favicon.ico',
+    icon: '/kalpa-tree.png',
+    apple: '/kalpa-tree.png',
+    shortcut: '/kalpa-tree.png',
   },
 };
 
