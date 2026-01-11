@@ -16,11 +16,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Admin Portal | Kalpavruksha EduHub",
   description: "Administrative portal for managing Kalpavruksha resources.",
-  icons: {
-    icon: '/kalpa-tree.png',
-    apple: '/kalpa-tree.png',
-    shortcut: '/kalpa-tree.png',
-  },
 };
 
 export default function RootLayout({
