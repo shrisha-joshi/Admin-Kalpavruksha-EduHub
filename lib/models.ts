@@ -23,6 +23,7 @@ const ResourceSchema = new mongoose.Schema({
   semester: { type: String },
   type: { type: String, enum: ['notes', 'pyq', 'handwritten', 'syllabus', 'important-questions'], required: true },
   fileUrl: { type: String, required: true },
+  subjectName: { type: String },
   uploadedAt: { type: Date, default: Date.now },
 });
 

@@ -13,6 +13,7 @@ import { Trash2, Plus, Loader2, FileText, Upload, Link as LinkIcon, Edit, X } fr
 type ResourceData = {
   _id: string;
   name: string;
+  subjectName?: string;
   subjectCode?: string;
   header?: string;
   university: string;
@@ -40,6 +41,7 @@ export default function ManageResourcesPage() {
   });
   const [formData, setFormData] = useState<{
     name: string;
+    subjectName: string;
     subjectCode: string;
     header: string;
     university: string;
@@ -51,6 +53,7 @@ export default function ManageResourcesPage() {
     fileUrl: string;
   }>({
     name: '',
+    subjectName: '',
     subjectCode: '',
     header: '',
     university: '',
@@ -88,12 +91,12 @@ export default function ManageResourcesPage() {
         setUploading(true);
         const uploadFormData = new FormData();
         uploadFormData.append('file', selectedFile);
-        
+
         const uploadRes = await fetch('/api/upload', {
           method: 'POST',
           body: uploadFormData,
         });
-        
+
         if (!uploadRes.ok) throw new Error('File upload failed');
         const { url } = await uploadRes.json();
         fileUrl = url;
@@ -107,12 +110,12 @@ export default function ManageResourcesPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...formData, fileUrl }),
         });
-        
+
         if (!updateRes.ok) {
           const errorData = await updateRes.json();
           throw new Error(`Update failed: ${errorData.error || updateRes.statusText}`);
         }
-        
+
         setEditingId(null);
         alert('Resource updated successfully!');
       } else {
@@ -122,20 +125,21 @@ export default function ManageResourcesPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...formData, fileUrl }),
         });
-        
+
         if (!createRes.ok) {
           const errorData = await createRes.json();
           throw new Error(`Upload failed: ${errorData.error || errorData.details || createRes.statusText}`);
         }
-        
+
         const newResource = await createRes.json();
         console.log('✅ Resource created:', newResource);
         alert('Resource uploaded successfully!');
       }
-      
+
       fetchResources();
       setFormData({
         name: '',
+        subjectName: '',
         subjectCode: '',
         header: '',
         university: '',
@@ -158,6 +162,7 @@ export default function ManageResourcesPage() {
   const handleEdit = (resource: ResourceData) => {
     setFormData({
       name: resource.name,
+      subjectName: resource.subjectName || '',
       subjectCode: resource.subjectCode || '',
       header: resource.header || '',
       university: resource.university,
@@ -178,6 +183,7 @@ export default function ManageResourcesPage() {
     setEditingId(null);
     setFormData({
       name: '',
+      subjectName: '',
       subjectCode: '',
       header: '',
       university: '',
@@ -195,16 +201,16 @@ export default function ManageResourcesPage() {
     if (!confirm('Are you sure you want to delete this resource? This action cannot be undone.')) {
       return;
     }
-    
+
     try {
       const response = await fetch(`/api/resources?id=${id}`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         throw new Error('Delete failed');
       }
-      
+
       fetchResources();
       alert('Resource deleted successfully!');
     } catch (error) {
@@ -261,6 +267,18 @@ export default function ManageResourcesPage() {
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Engineering Mathematics Notes"
                   required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="subjectName">Subject Name</Label>
+                <Input
+                  id="subjectName"
+                  name="subjectName"
+                  autoComplete="off"
+                  value={formData.subjectName}
+                  onChange={(e) => setFormData({ ...formData, subjectName: e.target.value })}
+                  placeholder="e.g., Advanced Mathematics"
                 />
               </div>
 
@@ -430,7 +448,7 @@ export default function ManageResourcesPage() {
                       onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                       required={uploadMode === 'file'}
                       className="cursor-pointer"
-                      key={selectedFile?.name || 'file-input'} 
+                      key={selectedFile?.name || 'file-input'}
                     />
                     {selectedFile && (
                       <p className="text-sm text-green-600">✓ {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)</p>
@@ -584,7 +602,11 @@ export default function ManageResourcesPage() {
                       <TableRow key={resource._id}>
                         <TableCell className="font-medium max-w-xs">
                           {resource.name}
-                          {resource.subjectCode && <div className="text-xs text-muted-foreground">{resource.subjectCode}</div>}
+                          <div className="text-xs text-muted-foreground">
+                            {resource.subjectName && <span>{resource.subjectName}</span>}
+                            {resource.subjectName && resource.subjectCode && <span> • </span>}
+                            {resource.subjectCode && <span>{resource.subjectCode}</span>}
+                          </div>
                         </TableCell>
                         <TableCell className="max-w-xs">
                           {resource.header ? (
@@ -630,8 +652,8 @@ export default function ManageResourcesPage() {
                 if (filters.type && filters.type !== 'all' && resource.type !== filters.type) return false;
                 return true;
               }).length === 0 && (
-                <p className="text-center text-muted-foreground p-8">No resources match the selected filters.</p>
-              )}
+                  <p className="text-center text-muted-foreground p-8">No resources match the selected filters.</p>
+                )}
             </div>
           )}
         </CardContent>
